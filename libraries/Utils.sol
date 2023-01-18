@@ -7,6 +7,8 @@ library Utils {
 
     // bytes20 constant NULL = 0x0000000000000000000000000000000000000000;
 
+    bytes22 constant F4_ADDR_EXAMPLE = 0x040Aff00000000000000000000000000000000000001;
+
     // FIL BUILTIN ACTORS
     address constant SYSTEM_ACTOR = 0xfF00000000000000000000000000000000000000;
     address constant INIT_ACTOR = 0xff00000000000000000000000000000000000001;
@@ -20,30 +22,12 @@ library Utils {
     // address constant CHAOS_ACTOR = 0xFF00000000000000000000000000000000000000; // 98
     // address constant BURNT_FUNDS_ACTOR = 0xFF00000000000000000000000000000000000000; // 99
 
-    // FIL PRECOMPILES
+    // FIL Precompiles
     address constant RESOLVE_ADDR = 0xFE00000000000000000000000000000000000001;
     address constant LOOKUP_DELEGATED_ADDR = 0xfE00000000000000000000000000000000000002;
     address constant CALL_ACTOR = 0xfe00000000000000000000000000000000000003;
     address constant GET_ACTOR_TYPE = 0xFe00000000000000000000000000000000000004;
     address constant CALL_ACTOR_BY_ID = 0xfe00000000000000000000000000000000000005;
-
-    enum AddressType {
-        NONE,
-        ID,
-        SECPK,
-        ACTOR,
-        BLS,
-        DELEGATED
-    }
-
-    enum ActorType {
-        NONE,
-        PRECOMPILE,
-        EVM,
-        FIL_BUILTIN,
-        ACCOUNT,
-        NOT_FOUND
-    }
 
     enum NativeType {
         NONEXISTENT,
@@ -66,7 +50,8 @@ library Utils {
         assembly {
             let id_temp := and(_a, ID_MASK) // Last 8 bytes of _a are the ID
             let a_mask := and(_a, not(id_temp)) // Zero out the last 8 bytes of _a
-            // _a is an ID address if we zero out the last 8 bytes and it's equal to the SYSTEM_ACTOR addr
+            // _a is an ID address if we zero out the last 8 bytes and it's equal to
+            // the SYSTEM_ACTOR addr, which is an ID address where ID is 0.
             if eq(a_mask, system) {
                 isID := true
                 id := id_temp
@@ -79,54 +64,64 @@ library Utils {
      * above for ID address definition.
      */
     function toIDAddress(uint64 _id) internal pure returns (address addr) {
-        assembly {
-
-        }
+        assembly { addr := or(SYSTEM_ACTOR, _id) }
     }
 
-    /**
-     * Given an f4-encoded address, parses the address and returns the underlying
-     * Eth address. If _addr does not contain a normal 20-byte Eth address, returns (false, 0)
-     */
-    function fromF4Address(bytes memory _addr) internal view returns (bool valid, address eth) {
-        if (_addr.length != 22) {
-            return (false, address(0));
-        }
+    // function getEthAddress(uint64 _id) internal view returns (bool success, address eth) {
+    //     bytes memory data = abi.encodePacked(_id);
+    //     (success, data) = LOOKUP_DELEGATED_ADDR.staticcall(data);
+        
+    //     // If we reverted the ID does not have a corresponding Eth address.
+    //     if (!success) {
+    //         return (false, address(0));
+    //     }
 
-        assembly {
-            // We want to zero out the length to do an mload, so keep it
-            // here to set it back later
-            let temp := mload(_addr)
-            mstore(_addr, 0)
-            eth := mload(add(_addr, 32))
-
-            mstore(_addr, temp)
-        }
-    }
+    //     (success, eth) = fromF4Address(data);
+    // }
 
     /**
      * Given an Actor id, queries LOOKUP_DELEGATED_ADDRESS precompile to try to convert
      * it to an Eth address. If the id does not have an associated Eth address, this
      * returns (false, 0x00)
-     * 
      */
     function getEthAddress(uint64 _id) internal view returns (bool success, address eth) {
-        bytes memory data = abi.encodePacked(_id);
-        (success, data) = LOOKUP_DELEGATED_ADDR.staticcall(data);
-        
-        // If we reverted the ID does not have a corresponding Eth address.
-        if (!success) {
+        uint160 ADDRESS_MASK = type(uint160).max;
+        assembly {
+            mstore(0, _id)
+            // LOOKUP_DELEGATED_ADDR returns an f4-encoded address. For Eth addresses,
+            // this looks like the 20-byte address, prefixed with 0x040A.
+            // So, our return size is 22 bytes.
+            success := staticcall(gas(), LOOKUP_DELEGATED_ADDR, 0, 0x20, 0x20, 22)
+            let result := mload(0x20)
+            eth := and(
+                shr(80, result),
+                ADDRESS_MASK
+            )
+            // Sanity-check f4 prefix - should be 0x040A prepended to address
+            let prefix := shr(240, result)
+            if iszero(eq(prefix, 0x040A)) {
+                success := false
+                eth := 0
+            }
+        }
+        if (!success || returnSize() != 22) {
             return (false, address(0));
         }
-
-        (success, eth) = fromF4Address(data);
     }
 
     /**
      * Given an Eth address, queries RESOLVE_ADDR precompile to look up the corresponding
-     * ID address. If there is no corresponding ID address, this returns (false, 0)
+     * ID address. 
+     * If there is no corresponding ID address, this returns (false, 0)
+     * If the address passed in is already an ID address, returns (true, id)
      */
     function getActorID(address _eth) internal view returns (bool success, uint64 id) {
+        // If we were passed an ID address already, just return it
+        (success, id) = isIDAddress(_eth);
+        if (success) { 
+            return(success, id); 
+        }
+
         assembly {
             // Convert EVM address to f4-encoded format:
             // 22 bytes, prepended with:
@@ -136,96 +131,33 @@ library Utils {
                 shl(240, 0x040A),
                 shl(80, _eth)
             )
-            // Set up calldata, call, and read return value
             mstore(0, _eth)
             success := staticcall(gas(), RESOLVE_ADDR, 0, 22, 0, 0x20)
             id := mload(0)
-            // If we got empty return data or the call reverted, return (false, 0)
-            if or(
-                iszero(returndatasize()),
-                iszero(success)
-            ) {
-                success := false
-                id := 0
-            }
         }
-        require(returnSize() != 0);
+        // If we got empty return data or the call reverted, return (false, 0)
+        if (!success || returnSize() == 0) {
+            return (false, 0);
+        }
     }
-
-    // function resolveAddress(address _a) internal view returns (bool success, uint64 id) {
-    //     address target = RESOLVE_ADDR;
-    //     assembly {
-    //         mstore(0, 22)
-    //         _a := or(
-    //             shl(240, 0x040A),
-    //             shl(80, _a)
-    //         )
-    //         mstore(0x20, _a)
-    //         success := staticcall(gas(), target, 0, 0x36, 0, 0x20)
-    //         if success {
-    //             id := mload(0)
-    //             // RESOLVE_ADDR returns nothing if the address encoding is invalid
-    //             if iszero(returndatasize()) {
-    //                 // success := 0
-    //                 id := 0
-    //             }
-    //         }
-    //     }
-    //     // uint rds;
-    //     // assembly { rds := returndatasize() }
-    //     // require(rds != 0);
-    // }
-
-    /**
-     * Attempts to convert an actor ID to an EVM address. If the conversion could not
-     * be performed, returns (false, 0x00)
-     * TODO: Returndatasize isn't necessarily 32 bytes, and right now this method
-     * is returning the full encoded address, rather than a left-padded EthAddress.
-     */
-    // function toEVMAddress(uint _id) internal view returns (bool success, bytes32 evmAddr) {
-    //     address target = LOOKUP_DELEGATED_ADDR;
-    //     assembly {
-    //         mstore(mload(0x40), _id)
-    //         success := staticcall(gas(), target, mload(0x40), 0x20, 0, 0x20)
-    //         if success {
-    //             // LOOKUP_DELEGATED_ADDR returns nothing if the EVM address wasn't found
-    //             evmAddr := mload(0)
-    //             if or(
-    //                 iszero(evmAddr),
-    //                 iszero(returndatasize())
-    //             ) {
-    //                 success := 0
-    //             }
-    //         }
-    //     }
-    // }
 
     /**
      * Calls the fil precompile GET_ACTOR_TYPE to resolve the type of an address
      * Returns whether the call succeeded, and the NativeType returned by the system if so
      */
     function getActorType(uint64 _id) internal view returns (bool success, NativeType aType) {
-        address target = GET_ACTOR_TYPE;
         assembly {
             mstore(0, _id)
-            success := staticcall(gas(), target, 0, 0x20, 0, 0x20)
-            if success {
-                aType := mload(0)
-                // Sanity check output - 
-                // NativeType is an enum with range [0:6]
-                // ... and GET_ACTOR_TYPE returns with no data if input was > u64 max
-                if or(
-                    gt(aType, 6), 
-                    iszero(returndatasize())
-                ) {
-                    success := 0
-                    aType := 0
-                }
-            }
+            success := staticcall(gas(), GET_ACTOR_TYPE, 0, 0x20, 0, 0x20)
+            aType := mload(0)
+        }
+        // If we got empty return data or the call reverted, return (false, 0)
+        if (!success || returnSize() == 0) {
+            return (false, NativeType.NONEXISTENT);
         }
     }
 
-    function returnSize() private pure returns (uint size) {
+    function returnSize() internal pure returns (uint size) {
         assembly { size := returndatasize() }
     }
 }

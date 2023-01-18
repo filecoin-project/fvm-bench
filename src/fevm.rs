@@ -45,8 +45,9 @@ pub fn run<B: Blockstore>(
 
     if create_res.msg_receipt.exit_code.value() != 0 {
         return Err(anyhow!(
-            "actor creation failed: {}",
-            create_res.msg_receipt.exit_code
+            "actor creation failed: {}\n{:#?}",
+            create_res.msg_receipt.exit_code,
+            create_res.failure_info,
         ));
     }
 
@@ -76,7 +77,7 @@ pub fn run<B: Blockstore>(
 
     if !invoke_res.msg_receipt.exit_code.is_success() {
         return Err(anyhow!(
-            "contract invocation failed: {} -- {:?}",
+            "contract invocation failed: {}\n{:#?}",
             invoke_res.msg_receipt.exit_code,
             invoke_res.failure_info,
         ));

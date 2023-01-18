@@ -28,7 +28,8 @@ for bin_file in "$output_dir"/*.bin; do
 
   # Run fvm-bench on the compiled file
   # Call the `testEntry()` function, and send no other calldata
-  output=$(./target/release/fvm-bench -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-802024e7b04236d4/out/bundle/bundle.car "$bin_file" 91365176 0000000000000000000000000000000000000000000000000000000000000000)
+  output=$(./target/release/fvm-bench -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-802024e7b04236d4/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
+  # output=$(./target/release/fvm-bench -d -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-802024e7b04236d4/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
 
   echo "Parsing output for $bin_file:"
   echo "Raw output:"
@@ -50,7 +51,7 @@ for bin_file in "$output_dir"/*.bin; do
   # Use forge-cast to abi-decode the returndata and echo the result
   # Note: right now, you need to manually change the return params
   #       here if you change testEntry() to return something new
-  decoded=$(cast --abi-decode "testEntry()(bool,uint64)" "0x$returndata")
+  decoded=$(cast --abi-decode "run()(bool[],string[])" "0x$returndata")
   echo "Decoded:"
   echo "=========="
   echo "$decoded"
