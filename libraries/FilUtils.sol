@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-library Utils {
+library FilUtils {
 
-    bytes32 constant FIL_NATIVE_CODEHASH = bytes32(0xbcc90f2d6dada5b18e155c17a1c0a55920aae94f39857d39d0d8ed07ae8f228b);
+    // keccak([])
+    bytes32 constant EVM_EMPTY_CODEHASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+    // keccak([0xFE])
+    bytes32 constant FIL_NATIVE_CODEHASH = 0xbcc90f2d6dada5b18e155c17a1c0a55920aae94f39857d39d0d8ed07ae8f228b;
 
     // bytes20 constant NULL = 0x0000000000000000000000000000000000000000;
 
@@ -28,6 +31,9 @@ library Utils {
     address constant CALL_ACTOR = 0xfe00000000000000000000000000000000000003;
     address constant GET_ACTOR_TYPE = 0xFe00000000000000000000000000000000000004;
     address constant CALL_ACTOR_BY_ID = 0xfe00000000000000000000000000000000000005;
+
+    uint64 constant MAX_RESERVED_METHOD = 1023;
+    bytes4 constant NATIVE_METHOD_SELECTOR = 0x868e10c4;
 
     enum NativeType {
         NONEXISTENT,
@@ -145,16 +151,19 @@ library Utils {
      * Calls the fil precompile GET_ACTOR_TYPE to resolve the type of an address
      * Returns whether the call succeeded, and the NativeType returned by the system if so
      */
-    function getActorType(uint64 _id) internal view returns (bool success, NativeType aType) {
+    function getActorType(uint64 _id) internal view returns (bool success, NativeType actorType) {
+        uint aType;
         assembly {
             mstore(0, _id)
             success := staticcall(gas(), GET_ACTOR_TYPE, 0, 0x20, 0, 0x20)
             aType := mload(0)
         }
-        // If we got empty return data or the call reverted, return (false, 0)
-        if (!success || returnSize() == 0) {
+        // If we got empty return data, the call reverted, or we got an invalid enum
+        // ... then return (false, 0)
+        if (!success || returnSize() == 0 || aType > uint(type(NativeType).max)) {
             return (false, NativeType.NONEXISTENT);
         }
+        return (success, NativeType(aType));
     }
 
     function returnSize() internal pure returns (uint size) {

@@ -13,10 +13,11 @@ rm "$output_dir"/*
 # Use solcjs to compile each and generate binary+abi output
 for file in ./contracts-alex/*.sol; do
   echo "Compiling $file"
-  solcjs --bin --abi "$file" --output-dir "$output_dir"
+  solcjs --optimize --bin --abi "$file" --output-dir "$output_dir"
 done
 
 echo "Testing contracts..."
+echo " "
 
 # Find all files in the "./contracts-output" directory that end with ".bin"
 for bin_file in "$output_dir"/*.bin; do
@@ -31,11 +32,14 @@ for bin_file in "$output_dir"/*.bin; do
   output=$(./target/release/fvm-bench -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-802024e7b04236d4/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
   # output=$(./target/release/fvm-bench -d -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-802024e7b04236d4/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
 
-  echo "Parsing output for $bin_file:"
-  echo "Raw output:"
-  echo "=========="
-  echo "$output"
-  echo "=========="
+  # echo "$output"
+
+  # echo "Parsing output for $bin_file:"
+  gas_used=$(echo "$output" | grep "Gas Used:")
+  # echo "Output:"
+  # echo "=========="
+  # echo "$gas_used"
+  # echo "=========="
 
   if [ $? -ne 0 ]; then
     exit 1
@@ -43,17 +47,20 @@ for bin_file in "$output_dir"/*.bin; do
 
   # Parse the output to retrieve the returndata from the "Result" line
   returndata=$(echo "$output" | grep "Result:" | awk '{print $2}')
-  echo "Raw returndata:"
-  echo "=========="
-  echo "$returndata"
-  echo "=========="
+  # echo "Raw returndata:"
+  # echo "=========="
+  # echo "$returndata"
+  # echo "=========="
 
   # Use forge-cast to abi-decode the returndata and echo the result
   # Note: right now, you need to manually change the return params
   #       here if you change testEntry() to return something new
-  decoded=$(cast --abi-decode "run()(bool[],string[])" "0x$returndata")
-  echo "Decoded:"
+  decoded=$(cast --abi-decode "run()(string[])" "0x$returndata")
+  echo "Test results for $bin_file:"
   echo "=========="
-  echo "$decoded"
+  echo "$gas_used"
+  echo "Failures:"
+  echo $decoded | jq -r ".[]"
   echo "=========="
+  echo " "
 done

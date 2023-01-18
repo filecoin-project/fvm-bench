@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "./Utils.sol";
+import "./FilUtils.sol";
 
 library EVMUtils {
     // EVM Precompiles
@@ -21,8 +21,28 @@ library EVMUtils {
         assembly {
             success := staticcall(gas(), IDENTITY, add(32, data), mload(data), add(32, copy), mload(copy))
         }
-        if (!success || Utils.returnSize() != data.length) {
+        if (!success || FilUtils.returnSize() != data.length) {
             return (false, bytes(""));
         }
+    }
+    
+    function selfCodesize() internal pure returns (uint cs) {
+        assembly { cs := codesize() }
+    }
+
+    function extCodesize(address a) internal view returns (uint cs) {
+        assembly { cs := extcodesize(a) }
+    }
+
+    function selfCodehash() internal pure returns (bytes32 ch) {
+        assembly {
+            let ptr := mload(0x40)
+            codecopy(ptr, 0, codesize())
+            ch := keccak256(ptr, codesize())
+        }
+    }
+
+    function extCodehash(address a) internal view returns (bytes32 ch) {
+        assembly { ch := extcodehash(a) }
     }
 }

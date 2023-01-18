@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-// Dummy contract used to test out things on freshly-deployed contracts
+// No frills dummy used to test things on fresh-deployed contracts
 contract Dummy { }
 
 library DummyLib {
