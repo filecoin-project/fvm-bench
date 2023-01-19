@@ -93,7 +93,7 @@ contract TestRecursiveCall {
             } else if (data.length != 0) {
                 assembly { revert(add(32, data), mload(data)) }
             } else {
-                revert("call failed at val: ".concat(val));
+                revert("call failed at depth: ".concat(RECURSE_COUNT - val));
             }
         } else {
             try this.recurse(val - 1, delegate) returns (uint v) {
@@ -101,7 +101,7 @@ contract TestRecursiveCall {
             } catch Error(string memory reason) {
                 revert(reason);
             } catch {
-                revert("call failed at val: ".concat(val));
+                revert("call failed at depth: ".concat(RECURSE_COUNT - val));
             }
         }
     }
@@ -116,7 +116,7 @@ contract TestRecursiveCall {
         } catch Error(string memory reason) {
             revert(reason);
         } catch {
-            revert("call failed at val: ".concat(val));
+            revert("call failed at depth: ".concat(RECURSE_COUNT - val));
         }
     }
 }
