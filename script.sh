@@ -11,7 +11,7 @@ rm "$output_dir"/*
 
 # Find all files in the "./contracts/" directory that end with ".sol"
 # Use solcjs to compile each and generate binary+abi output
-for file in ./contracts-alex/*.sol; do
+for file in ./tests/*.sol; do
   echo "Compiling $file"
   solcjs --optimize --bin --abi "$file" --output-dir "$output_dir"
 done
