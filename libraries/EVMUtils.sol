@@ -45,4 +45,9 @@ library EVMUtils {
     function extCodehash(address a) internal view returns (bytes32 ch) {
         assembly { ch := extcodehash(a) }
     }
+
+    function getOwnCode() internal pure returns (bytes memory code) {
+        code = new bytes(selfCodesize());
+        assembly { codecopy(add(32, code), 0, mload(code)) }
+    }
 }

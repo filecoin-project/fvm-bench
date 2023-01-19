@@ -55,6 +55,7 @@ Gas Used: 2252508
 ### What this looks like
 
 In order, `./script.sh` does this:
+
 0. Clear the `/contracts-output` folder
 1. Compile all `.sol` files located in the `/tests` folder, placing the results in `contracts-output`
 2. For each compiled `/tests/*.sol` file, run `fvm-bench` and call the `run()` method on the target. Pass in empty calldata.
@@ -90,7 +91,7 @@ Test 2 (test__Create_Selfdestruct) failed with: should have no codesize after se
 
 ```
 
-### What's going on
+### How to add a test
 
 Tests are located in the `/tests` folder. Each test contract defines the same entry point - the `run` method. Example:
 
@@ -104,7 +105,7 @@ function run() public returns (string[] memory results) {
 }
 ```
 
-Within the `run` method, we use the `Test` library (`./libraries/Test.sol`) to set up and run tests. As shown in the example above, tests can be added to the `TestRunner` returned by `Test.getRunner()`. Adding tests in this way places them in contract storage until they're ready to be run - which we do at the end using `.run()`
+Within the `run` method, we use the `Test` library (`./libraries/Test.sol`) to set up and run tests. As shown in the example above, tests can be added to the `TestRunner` returned by `Test.getRunner()`. Adding tests in this way places them in contract storage until they're ready to be run - which we do at the end using `.run()`.
 
 We can select whether the tests are called using `STATICCALL`, `CALL`, or `CALL` with value by using:
 * `.addV` -> "add view," adds a `view` test that will be called with `STATICCALL`
@@ -133,3 +134,5 @@ The `Test.expect` method attaches nicely-formatted error messages to assertions.
 ... Which asserts that `1 > 5`, and fails the test with an error message using `REVERT`. This message is caught by the `TestRunner`, and printed out after all tests are run.
 
 There are multiple assertions available in the `Test` library, and it's pretty easy to add more if there's an assertion you need.
+
+**Remember:** Every time you add a test function to a contract, you must also add it to the `TestRunner` or it will not be run!

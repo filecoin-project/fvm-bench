@@ -205,8 +205,18 @@ library Test {
     string constant SEP_LT = " < ";   // -- expected $a < $b
     string constant SEP_LTE = " <= "; // -- expected $a <= $b
 
+    // bool
+    string constant EXPECTED_TRUE = " -- expected true, got false";
+    string constant EXPECTED_FALSE = " -- expected false, got true";
+
+    string constant ASSERT_FAIL = " -- assertion failure: ";
+
     function expect(string memory str) internal pure returns (string memory) {
         return str;
+    }
+
+    function fail(string memory str) internal pure {
+        revert(ASSERT_FAIL.concat(str));
     }
 
     /**
@@ -328,9 +338,6 @@ library Test {
      * - success
      * - fail
      */
-    
-    string constant EXPECTED_TRUE = " -- expected true, got false";
-    string constant EXPECTED_FALSE = " -- expected false, got true";
 
     function success(string memory str, bool cond) internal pure {
         if (cond) return;

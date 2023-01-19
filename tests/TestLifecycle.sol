@@ -6,6 +6,7 @@ import "../libraries/ErrLib.sol";
 import "../libraries/FilUtils.sol";
 import "../libraries/deployable/Dummy.sol";
 import "../libraries/deployable/Lifecycle.sol";
+import "../libraries/deployable/Nested.sol";
 
 contract TestLifecycle {
 
@@ -21,8 +22,6 @@ contract TestLifecycle {
         return Test.getRunner()
             .addM(this.test__Create_Codesize.named("test__Create_Codesize"))
             .addP(this.test__Create_Ctx.named("test__Create_Ctx"))
-            .addM(this.test__Create_Selfdestruct.named("test__Create_Selfdestruct"))
-            .addM(this.test__Nested_Create.named("test__Nested_Create"))
             .run();
     }
 
@@ -91,13 +90,5 @@ contract TestLifecycle {
         Test.expect("balance should be equal to value sent").eq(ctx.balance, toSend);
         Test.expect("selfbalance be equal to value sent").eq(ctx.selfBalance, toSend);
         Test.expect("our balance should decrease by sent amount").eq(address(this).balance, prevBalance - toSend);
-    }
-
-    function test__Create_Selfdestruct() external pure {
-        Test.expect("should have no codesize after selfdestruct").iszero(420);
-    }
-
-    function test__Nested_Create() external pure {
-        return;
     }
 }

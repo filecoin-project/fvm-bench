@@ -9,12 +9,11 @@ fi
 # Clear directory of previous compiler output
 rm "$output_dir"/*
 
-# Find all files in the "./contracts/" directory that end with ".sol"
+# Recursively find all files in the ./tests directory that end with ".sol"
 # Use solcjs to compile each and generate binary+abi output
-for file in ./tests/*.sol; do
-  echo "Compiling $file"
-  solcjs --optimize --bin --abi "$file" --output-dir "$output_dir"
-done
+# Place all output in $output_dir
+echo "Compiling..."
+find ./tests -name "*.sol" -exec sh -c "echo Compiling {}; solcjs --optimize --bin --abi {} --output-dir ${output_dir}" \;
 
 echo "Testing contracts..."
 echo " "
