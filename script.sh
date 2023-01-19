@@ -59,7 +59,6 @@ for bin_file in "$output_dir"/*.bin; do
   echo "Test results for $bin_file:"
   echo "=========="
   echo "$gas_used"
-  echo "Failures:"
   echo $decoded | jq -r ".[]"
   echo "=========="
   echo " "

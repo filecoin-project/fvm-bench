@@ -33,14 +33,15 @@ library Test {
         assembly { t.slot := slot }
     }
 
-    function run(TestRunner storage tr) internal returns (string[] memory failures) {
-        failures = new string[](tr.tests.length);
+    function run(TestRunner storage tr) internal returns (string[] memory results) {
+        results = new string[](tr.tests.length + 1);
+        uint passCount;
 
         // Iterate over added tests and run each. Tests that revert should
-        // return an error message. These are tracked in the failures array, 
+        // return an error message. These are tracked in the results array, 
         // which we return from this method.
 
-        uint failCount;
+        uint failCount = 1;
         for (uint i = 0; i < tr.tests.length; i++) {
             TestFn storage t = tr.tests[i];
 
@@ -52,43 +53,48 @@ library Test {
             if (t.mutability == Mut.PAYABLE) {
                 function() external payable payFn = toPayable(t.test);
                 try payFn{ value: 100 }() {
+                    passCount++;
                     continue;
                 } catch Error(string memory reason) {
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 } catch (bytes memory data) {
                     string memory reason;
                     assembly { reason := data }
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 }
             } else if (t.mutability == Mut.VIEW) {
                 function() external view viewFn = toView(t.test);
                 try viewFn() {
+                    passCount++;
                     continue;
                 } catch Error(string memory reason) {
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 } catch (bytes memory data) {
                     string memory reason;
                     assembly { reason := data }
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 }
             } else {
                 function() external mutFn = t.test;
                 try mutFn() {
+                    passCount++;
                     continue;
                 } catch Error(string memory reason) {
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 } catch (bytes memory data) {
                     string memory reason;
                     assembly { reason := data }
-                    failures[failCount] = getFailureString(i, t.name, reason);
+                    results[failCount] = getFailureString(i, t.name, reason);
                 }
             }
 
             failCount++;
         }
 
-        // Manually update the length of failures
-        assembly { mstore(failures, failCount) }
+        results[0] = getResultsString(passCount, tr.tests.length);
+
+        // Manually update the length of results
+        assembly { mstore(results, failCount) }
     }
 
     /**
@@ -166,6 +172,15 @@ library Test {
         assembly {
             payFn.address := fn.address
             payFn.selector := fn.selector
+        }
+    }
+
+    function getResultsString(uint passCount, uint totalTests) internal pure returns (string memory) {
+        string memory result = string("\"").concat(passCount).concat(string(" out of ")).concat(totalTests);
+        if (passCount == totalTests) {
+            return result.concat(string(" tests passing.\""));
+        } else {
+            return result.concat(string(" tests passing. Failures:\""));
         }
     }
     

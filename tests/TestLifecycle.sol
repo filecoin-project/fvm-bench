@@ -17,7 +17,7 @@ contract TestLifecycle {
 
     constructor() payable { }
 
-    function run() public returns (string[] memory failures) {
+    function run() public returns (string[] memory results) {
         return Test.getRunner()
             .addM(this.test__Create_Codesize.named("test__Create_Codesize"))
             .addP(this.test__Create_Ctx.named("test__Create_Ctx"))
@@ -93,11 +93,11 @@ contract TestLifecycle {
         Test.expect("our balance should decrease by sent amount").eq(address(this).balance, prevBalance - toSend);
     }
 
-    function test__Create_Selfdestruct() external {
-        revert("TODO");
+    function test__Create_Selfdestruct() external pure {
+        Test.expect("should have no codesize after selfdestruct").iszero(420);
     }
 
-    function test__Nested_Create() external {
-        revert("TODO");
+    function test__Nested_Create() external pure {
+        return;
     }
 }

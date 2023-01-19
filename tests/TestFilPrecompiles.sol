@@ -16,7 +16,7 @@ contract TestFilPrecompiles {
 
     constructor() payable { }
 
-    function run() public returns (string[] memory failures) {
+    function run() public returns (string[] memory results) {
         return Test.getRunner()
             .addV(this.test__ResolveRoundtrip.named("test__ResolveRoundtrip"))
             .addM(this.test__ResolveNewActors.named("test__ResolveNewActors"))
@@ -104,9 +104,5 @@ contract TestFilPrecompiles {
         (success, nt) = id.getActorType();
         Test.expect("get_actor_type reverted or returned empty").success(success);
         Test.expect("new contract should have EVM contract type").eq(nt, FilUtils.NativeType.EVM_CONTRACT);
-    }
-
-    function test__CallActor() external {
-        revert("Failed for no reason at all! lol");
     }
 }

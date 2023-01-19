@@ -16,7 +16,7 @@ contract TestEVMPrecompiles {
 
     constructor() payable { }
 
-    function run() public returns (string[] memory failures) {
+    function run() public returns (string[] memory results) {
         return Test.getRunner()
             .addV(this.test__Identity.named("test__Identity"))
             .run();
