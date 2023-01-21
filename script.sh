@@ -13,7 +13,13 @@ rm "$output_dir"/*
 # Use solcjs to compile each and generate binary+abi output
 # Place all output in $output_dir
 echo "Compiling..."
-find ./tests -name "*.sol" -exec sh -c "echo Compiling {}; solcjs --optimize --bin --abi {} --output-dir ${output_dir}" \;
+# If we passed in part of a file name, we only compile that file
+# ... and only the files we compile get run as tests.
+if [ -z "$1" ]; then
+  find ./tests -name "*.sol" -exec sh -c "echo Compiling {}; solcjs --optimize --bin --abi {} --output-dir ${output_dir}" \;
+else
+  find ./tests -name "*$1*.sol" -exec sh -c "echo Compiling {}; solcjs --optimize --bin --abi {} --output-dir ${output_dir}" \;
+fi
 
 echo "Testing contracts..."
 echo " "
@@ -25,6 +31,10 @@ for bin_file in "$output_dir"/*.bin; do
     # echo "Skipping library: $bin_file"
     continue
   fi
+
+  # if [[ $bin_file != *"TestRecursiveCall.bin" ]]; then
+  #   continue
+  # fi
 
   # Run fvm-bench on the compiled file
   # Call the `testEntry()` function, and send no other calldata
