@@ -5,6 +5,7 @@ import "../libraries/Test.sol";
 import "../libraries/ErrLib.sol";
 import "../libraries/FilUtils.sol";
 import "../libraries/deployable/Dummy.sol";
+import "../libraries/deployable/Lifecycle.sol";
 
 contract TestFilPrecompiles {
 

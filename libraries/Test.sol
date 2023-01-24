@@ -185,7 +185,7 @@ library Test {
     }
     
     function getFailureString(uint testNo, string memory name, string memory reason) private pure returns (string memory) {
-        return string("\"Test ").concat(testNo).concat(string(" (")).concat(name).concat(string(") failed with: ")).concat(reason).concat(string("\""));
+        return string("\"Test ").concat(testNo+1).concat(string(" (")).concat(name).concat(string(") failed with: ")).concat(reason).concat(string("\""));
     }
 
     /**
