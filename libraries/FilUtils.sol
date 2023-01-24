@@ -29,21 +29,11 @@ library FilUtils {
     address constant RESOLVE_ADDR = 0xFE00000000000000000000000000000000000001;
     address constant LOOKUP_DELEGATED_ADDR = 0xfE00000000000000000000000000000000000002;
     address constant CALL_ACTOR = 0xfe00000000000000000000000000000000000003;
-    address constant GET_ACTOR_TYPE = 0xFe00000000000000000000000000000000000004;
+    // address constant GET_ACTOR_TYPE = 0xFe00000000000000000000000000000000000004;
     address constant CALL_ACTOR_BY_ID = 0xfe00000000000000000000000000000000000005;
 
     uint64 constant MAX_RESERVED_METHOD = 1023;
     bytes4 constant NATIVE_METHOD_SELECTOR = 0x868e10c4;
-
-    enum NativeType {
-        NONEXISTENT,
-        SYSTEM,
-        PLACEHOLDER,
-        ACCOUNT,
-        STORAGE_PROVIDER,
-        EVM_CONTRACT,
-        OTHER
-    }
 
     /**
      * Checks whether a given address is an ID address. If it is, the ID is returned.
@@ -145,25 +135,6 @@ library FilUtils {
         if (!success || returnSize() == 0) {
             return (false, 0);
         }
-    }
-
-    /**
-     * Calls the fil precompile GET_ACTOR_TYPE to resolve the type of an address
-     * Returns whether the call succeeded, and the NativeType returned by the system if so
-     */
-    function getActorType(uint64 _id) internal view returns (bool success, NativeType actorType) {
-        uint aType;
-        assembly {
-            mstore(0, _id)
-            success := staticcall(gas(), GET_ACTOR_TYPE, 0, 0x20, 0, 0x20)
-            aType := mload(0)
-        }
-        // If we got empty return data, the call reverted, or we got an invalid enum
-        // ... then return (false, 0)
-        if (!success || returnSize() == 0 || aType > uint(type(NativeType).max)) {
-            return (false, NativeType.NONEXISTENT);
-        }
-        return (success, NativeType(aType));
     }
 
     function returnSize() internal pure returns (uint size) {

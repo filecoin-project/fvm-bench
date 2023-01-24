@@ -23,10 +23,17 @@ contract TestRecursiveCall {
             .addM(this.test__Recursive_Call.named("test__Recursive_Call"))
             .addM(this.test__Recursive_Delegatecall.named("test__Recursive_Delegatecall"))
             .addV(this.test__Recursive_Staticcall.named("test__Recursive_Staticcall"))
+            .addM(this.test__Recursive_CallActor.named("test__Recursive_CallActor"))
             .run();
     }
 
-    uint constant RECURSE_COUNT = 1020;
+    /**
+     * The call stack depth limit is technically 1024, but we can't
+     * actually reach that in practice, because each call only sends
+     * up to 63/64 available gas. With a gas limit of 10B, we end up failing
+     * somewhere in the 200's.
+     */
+    uint constant RECURSE_COUNT = 200;
 
     /**
      * Each of these tests tries to recurse RECURSE_COUNT times,
@@ -65,6 +72,12 @@ contract TestRecursiveCall {
         }
     }
 
+    function test__Recursive_CallActor() external {
+        revert("TODO");
+    }
+
+    // function handle_filecoin_method() public;
+
     /**
      * The error catching here is a little weird -
      * 
@@ -84,6 +97,8 @@ contract TestRecursiveCall {
             return 42;
         } 
         
+        uint gasLeftBefore = gasleft();
+
         if (delegate) {
             bool success;
             bytes memory data = abi.encodeWithSelector(this.recurse.selector, val-1, delegate);
@@ -93,7 +108,14 @@ contract TestRecursiveCall {
             } else if (data.length != 0) {
                 assembly { revert(add(32, data), mload(data)) }
             } else {
-                revert("call failed at depth: ".concat(RECURSE_COUNT - val));
+                revert(
+                    "call failed at depth: "
+                        .concat(RECURSE_COUNT - val)
+                        .concat(string("; gas before call: "))
+                        .concat(gasLeftBefore)
+                        .concat(string("; gas after: "))
+                        .concat(gasleft())
+                );
             }
         } else {
             try this.recurse(val - 1, delegate) returns (uint v) {
@@ -101,7 +123,14 @@ contract TestRecursiveCall {
             } catch Error(string memory reason) {
                 revert(reason);
             } catch {
-                revert("call failed at depth: ".concat(RECURSE_COUNT - val));
+                revert(
+                    "call failed at depth: "
+                        .concat(RECURSE_COUNT - val)
+                        .concat(string("; gas before call: "))
+                        .concat(gasLeftBefore)
+                        .concat(string("; gas after: "))
+                        .concat(gasleft())
+                );
             }
         }
     }
@@ -111,12 +140,21 @@ contract TestRecursiveCall {
             return 42;
         }
 
+        uint gasLeftBefore = gasleft();
+
         try this.recurseView(val - 1) returns (uint v) {
             return v;
         } catch Error(string memory reason) {
             revert(reason);
         } catch {
-            revert("call failed at depth: ".concat(RECURSE_COUNT - val));
+            revert(
+                "call failed at depth: "
+                    .concat(RECURSE_COUNT - val)
+                    .concat(string("; gas before call: "))
+                    .concat(gasLeftBefore)
+                    .concat(string("; gas after: "))
+                    .concat(gasleft())
+            );
         }
     }
 }

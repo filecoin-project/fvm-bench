@@ -323,17 +323,6 @@ library Test {
     }
 
     /**
-     * NativeType assertions:
-     * - eq
-     */
-    
-    function eq(string memory str, FilUtils.NativeType a, FilUtils.NativeType b) internal pure {
-        if (a == b) return;
-
-        revert(str.concat(EXPECTED).concat(a).concat(SEP_EQ).concat(b));
-    }
-
-    /**
      * bool assertions
      * - success
      * - fail

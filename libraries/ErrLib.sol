@@ -21,12 +21,6 @@ library ErrLib {
     //     return concat(str, uint(value));
     // }
 
-    function concat(string memory str, FilUtils.NativeType nt) internal pure returns (string memory) {
-        uint value;
-        assembly { value := nt }
-        return concat(str, value);
-    }
-
     function concat(string memory str, address a) internal pure returns (string memory) {
         return string.concat(str, toHexString(a));
     }

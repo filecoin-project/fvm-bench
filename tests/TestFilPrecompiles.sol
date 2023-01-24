@@ -18,14 +18,14 @@ contract TestFilPrecompiles {
 
     function run() public returns (string[] memory results) {
         return Test.getRunner()
-            .addV(this.test__ResolveRoundtrip.named("test__ResolveRoundtrip"))
-            .addM(this.test__ResolveNewActors.named("test__ResolveNewActors"))
-            .addM(this.test__ActorType.named("test__ActorType"))
+            .addV(this.test__Resolve_Roundtrip.named("test__Resolve_Roundtrip"))
+            .addM(this.test__Resolve_New_Actors.named("test__Resolve_New_Actors"))
+            .addM(this.test__Call_Unknown_Precompile.named("test__Call_Unknown_Precompile"))
             .run();
     }
 
     // Test resolve_address -> lookup_delegated_address roundtrip
-    function test__ResolveRoundtrip() external view {
+    function test__Resolve_Roundtrip() external view {
         (bool success, uint64 id) = address(this).getActorID();
         Test.expect("resolve_address reverted or returned empty").success(success);
         Test.expect("resolved actor id should be valid").gte(id, 100);
@@ -37,7 +37,7 @@ contract TestFilPrecompiles {
     }
 
     // Test resolve_address on fresh actors
-    function test__ResolveNewActors() external {
+    function test__Resolve_New_Actors() external {
         address a = DummyLib.newDummy();
         (bool success, uint64 curId) = a.getActorID();
         Test.expect("resolve_address reverted or returned empty").success(success);
@@ -57,52 +57,48 @@ contract TestFilPrecompiles {
         }
     }
 
-    // Test getting the actor type for various actors:
-    function test__ActorType() external {
-        // Get our own ID
-        (bool success, uint64 id) = address(this).getActorID();
-        Test.expect("resolve_address reverted or returned empty").success(success);
-        Test.expect("resolved actor id should be valid").gte(id, 100);
-
-        // We should be an EVM actor
-        FilUtils.NativeType nt;
-        (success, nt) = id.getActorType();
-        Test.expect("get_actor_type reverted or returned empty").success(success);
-        Test.expect("we should be an EVM contract").eq(nt, FilUtils.NativeType.EVM_CONTRACT);
-
-        // Get ID of contract deployer
-        (success, id) = creator.getActorID();
-        Test.expect("resolve_address reverted or returned empty").success(success);
-        Test.expect("resolved actor id should be valid").gte(id, 100);
-
-        // Creator should be an Account type
-        (success, nt) = id.getActorType();
-        Test.expect("get_actor_type reverted or returned empty").success(success);
-        Test.expect("msg.sender should be account type").eq(nt, FilUtils.NativeType.ACCOUNT);
-
-        // Check actor types for builtin actors 0 - 7
-        // TODO - actors [2:7] are NONEXISTENT for some reason. fvm-bench?
-        for (uint64 i = 0; i < 5; i++) {
-            (success, nt) = i.getActorType();
-            Test.expect("get_actor_type reverted or returned empty").success(success);
-            Test.expect("builtin singleton should be system type").eq(nt, FilUtils.NativeType.SYSTEM);
-        }
+    // Test properties of calls to addresses that are formatted like precompiles
+    // ... but do not exist
+    function test__Call_Unknown_Precompile() external {
+        // Unknown EVM precompile - all CALL types
+        (bool success, bytes memory data) = address(uint160(100)).call("");
+        Test.expect("call should succeed when calling unknown EVM precompile").success(success);
+        Test.expect("call should not return anything for unknown EVM precompile").iszero(data.length);
         
-        // Check actor type for EAM
-        (success, nt) = uint64(10).getActorType();
-        Test.expect("get_actor_type reverted or returned empty").success(success);
-        Test.expect("EAM should be system type").eq(nt, FilUtils.NativeType.SYSTEM);
+        (success, data) = address(uint160(100)).staticcall("");
+        Test.expect("staticcall should succeed when calling unknown EVM precompile").success(success);
+        Test.expect("staticcall should not return anything for unknown EVM precompile").iszero(data.length);
 
-        // Check actor type for nonexistent address
-        (success, nt) = uint64(10000).getActorType();
-        Test.expect("get_actor_type reverted or returned empty").success(success);
-        Test.expect("ActorID(10000) should be nonexistent type").eq(nt, FilUtils.NativeType.NONEXISTENT);
+        (success, data) = address(uint160(100)).delegatecall("");
+        Test.expect("delegatecall should succeed when calling unknown EVM precompile").success(success);
+        Test.expect("delegatecall should not return anything for unknown EVM precompile").iszero(data.length);
 
-        // Check actor type for freshly-deployed contract
-        address a = DummyLib.newDummy();
-        (, id) = a.getActorID();
-        (success, nt) = id.getActorType();
-        Test.expect("get_actor_type reverted or returned empty").success(success);
-        Test.expect("new contract should have EVM contract type").eq(nt, FilUtils.NativeType.EVM_CONTRACT);
+        // Deprecated FIL precompile - all CALL types
+        address target = 0xFe00000000000000000000000000000000000004;
+        (success, data) = target.call("");
+        Test.expect("call should succeed when calling deprecated precompile").success(success);
+        Test.expect("call should not return anything for deprecated precompile").iszero(data.length);
+
+        (success, data) = target.staticcall("");
+        Test.expect("staticcall should succeed when calling deprecated precompile").success(success);
+        Test.expect("staticcall should not return anything for deprecated precompile").iszero(data.length);
+        
+        (success, data) = target.delegatecall("");
+        Test.expect("delegatecall should succeed when calling deprecated precompile").success(success);
+        Test.expect("delegatecall should not return anything for deprecated precompile").iszero(data.length);
+
+        // Unknown FIL precompile - all CALL types
+        target = uint64(100).toIDAddress();
+        (success, data) = target.call("");
+        Test.expect("call should succeed when calling unknown precompile").success(success);
+        Test.expect("call should not return anything for unknown precompile").iszero(data.length);
+
+        (success, data) = target.staticcall("");
+        Test.expect("staticcall should succeed when calling unknown precompile").success(success);
+        Test.expect("staticcall should not return anything for unknown precompile").iszero(data.length);
+        
+        (success, data) = target.delegatecall("");
+        Test.expect("delegatecall should succeed when calling unknown precompile").success(success);
+        Test.expect("delegatecall should not return anything for unknown precompile").iszero(data.length);
     }
 }
