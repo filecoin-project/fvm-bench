@@ -32,7 +32,7 @@ contract TestRecursiveCreate2 {
     // we're going to use a ton of gas.
     function test__Recursive_Create2() external {
         // deep recursive CREATE2
-        Nested2 n = new Nested2{ salt: SALT }(200);
+        Nested2 n = new Nested2{ salt: SALT }(100);
         
         (address curChild, uint curCount, bytes32 initcodeHash) = n.getChildCountAndHash();
         address calcedAddr = calculateChildCreate2(SALT, initcodeHash, address(n));

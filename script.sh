@@ -38,8 +38,8 @@ for bin_file in "$output_dir"/*.bin; do
 
   # Run fvm-bench on the compiled file
   # Call the `testEntry()` function, and send no other calldata
-  output=$(./target/release/fvm-bench -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-ed4d1e669eda32fe/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
-  # output=$(./target/release/fvm-bench -d -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-ed4d1e669eda32fe/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
+  output=$(./target/release/fvm-bench -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-4dcbfc6fcdea3431/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
+  # output=$(./target/release/fvm-bench -d -b ../builtin-actors/target/debug/build/fil_builtin_actors_bundle-4dcbfc6fcdea3431/out/bundle/bundle.car "$bin_file" c0406226 0000000000000000000000000000000000000000000000000000000000000000)
 
   # echo "$output"
 

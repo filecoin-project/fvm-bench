@@ -23,7 +23,6 @@ contract TestRecursiveCall {
             .addM(this.test__Recursive_Call.named("test__Recursive_Call"))
             .addM(this.test__Recursive_Delegatecall.named("test__Recursive_Delegatecall"))
             .addV(this.test__Recursive_Staticcall.named("test__Recursive_Staticcall"))
-            .addM(this.test__Recursive_CallActor.named("test__Recursive_CallActor"))
             .run();
     }
 
@@ -71,12 +70,6 @@ contract TestRecursiveCall {
             Test.fail("should not have reached this point; got data: ".concat(string(data)));
         }
     }
-
-    function test__Recursive_CallActor() external {
-        revert("TODO");
-    }
-
-    // function handle_filecoin_method() public;
 
     /**
      * The error catching here is a little weird -

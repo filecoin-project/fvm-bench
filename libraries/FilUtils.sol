@@ -35,6 +35,45 @@ library FilUtils {
     uint64 constant MAX_RESERVED_METHOD = 1023;
     bytes4 constant NATIVE_METHOD_SELECTOR = 0x868e10c4;
 
+    uint64 constant DEFAULT_FLAG = 0x00000000;
+    uint64 constant READONLY_FLAG = 0x00000001;
+
+    function callActor(
+        uint64 _id, 
+        uint64 _method, 
+        uint _value, 
+        uint64 _codec, 
+        bytes memory _data
+    ) internal returns (bool, bytes memory) {
+        return callHelper(false, _id, _method, _value, _codec, _data);
+    }
+
+    function callActorReadonly(
+        uint64 _id,
+        uint64 _method,
+        uint64 _codec,
+        bytes memory _data
+    ) internal view returns (bool, bytes memory) {
+        function(bool, uint64, uint64, uint, uint64, bytes memory) internal view returns (bool, bytes memory) callFn;
+        function(bool, uint64, uint64, uint, uint64, bytes memory) internal returns (bool, bytes memory) helper = callHelper;
+        assembly { callFn := helper }
+        return callFn(true, _id, _method, 0, _codec, _data);
+    }
+
+    function callHelper(
+        bool _readonly,
+        uint64 _id, 
+        uint64 _method, 
+        uint _value, 
+        uint64 _codec, 
+        bytes memory _data
+    ) private returns (bool, bytes memory) {
+        uint64 flags = _readonly ? READONLY_FLAG : DEFAULT_FLAG;
+        require(!_readonly || _value == 0); // sanity check - shouldn't hit this in a private method
+        bytes memory input = abi.encode(_method, _value, flags, _codec, _data, _id);
+        return CALL_ACTOR_BY_ID.delegatecall(input);
+    }
+
     /**
      * Checks whether a given address is an ID address. If it is, the ID is returned.
      * An ID address is defined as:

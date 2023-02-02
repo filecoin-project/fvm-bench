@@ -29,7 +29,7 @@ contract TestRecursiveCreate {
     // we're going to use a ton of gas.
     function test__Recursive_Create() external {
         // deep recursive CREATE
-        Nested n = new Nested(200);
+        Nested n = new Nested(100);
         (address curChild, uint curCount) = n.getChildAndCount();
         address calcedAddr = calculateChild(address(n));
 

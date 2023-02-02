@@ -57,10 +57,10 @@ library Test {
                     continue;
                 } catch Error(string memory reason) {
                     results[failCount] = getFailureString(i, t.name, reason);
-                } catch (bytes memory data) {
-                    string memory reason;
-                    assembly { reason := data }
-                    results[failCount] = getFailureString(i, t.name, reason);
+                } catch Panic(uint err) {
+                    results[failCount] = getPanicString(i, t.name, err);
+                } catch {
+                    results[failCount] = getUnknownErrString(i, t.name);
                 }
             } else if (t.mutability == Mut.VIEW) {
                 function() external view viewFn = toView(t.test);
@@ -69,10 +69,10 @@ library Test {
                     continue;
                 } catch Error(string memory reason) {
                     results[failCount] = getFailureString(i, t.name, reason);
-                } catch (bytes memory data) {
-                    string memory reason;
-                    assembly { reason := data }
-                    results[failCount] = getFailureString(i, t.name, reason);
+                } catch Panic(uint err) {
+                    results[failCount] = getPanicString(i, t.name, err);
+                } catch {
+                    results[failCount] = getUnknownErrString(i, t.name);
                 }
             } else {
                 function() external mutFn = t.test;
@@ -81,10 +81,10 @@ library Test {
                     continue;
                 } catch Error(string memory reason) {
                     results[failCount] = getFailureString(i, t.name, reason);
-                } catch (bytes memory data) {
-                    string memory reason;
-                    assembly { reason := data }
-                    results[failCount] = getFailureString(i, t.name, reason);
+                } catch Panic(uint err) {
+                    results[failCount] = getPanicString(i, t.name, err);
+                } catch {
+                    results[failCount] = getUnknownErrString(i, t.name);
                 }
             }
 
@@ -186,6 +186,14 @@ library Test {
     
     function getFailureString(uint testNo, string memory name, string memory reason) private pure returns (string memory) {
         return string("\"Test ").concat(testNo+1).concat(string(" (")).concat(name).concat(string(") failed with: ")).concat(reason).concat(string("\""));
+    }
+
+    function getPanicString(uint testNo, string memory name, uint err) private pure returns (string memory) {
+        return string("\"Test ").concat(testNo+1).concat(string(" (")).concat(name).concat(string(") paniced with errNo: ")).concat(err).concat(string("\""));
+    }
+
+    function getUnknownErrString(uint testNo, string memory name) private pure returns (string memory) {
+        return string("\"Test ").concat(testNo+1).concat(string(" (")).concat(name).concat(string(") failed with unknown error\""));
     }
 
     /**
