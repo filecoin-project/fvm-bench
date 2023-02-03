@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use fvm::executor::{ApplyKind, Executor};
 use fvm_integration_tests::dummy::DummyExterns;
-use fvm_integration_tests::tester::{Account, Tester};
+use fvm_integration_tests::tester::{Account, Tester, INITIAL_ACCOUNT_BALANCE};
 use fvm_ipld_blockstore::Blockstore;
 use fvm_ipld_encoding::{strict_bytes, tuple::*, BytesDe, BytesSer, RawBytes};
 use fvm_shared::{address::Address, message::Message, ActorID, METHOD_CONSTRUCTOR};
@@ -33,6 +33,7 @@ pub fn run<B: Blockstore>(
         gas_limit: 10_000_000_000,
         method_num: EAMMethod::CreateExternal as u64,
         params: RawBytes::serialize(BytesSer(&create_params_ser)).unwrap(),
+        value: INITIAL_ACCOUNT_BALANCE.clone(),
         ..Message::default()
     };
 
@@ -45,8 +46,9 @@ pub fn run<B: Blockstore>(
 
     if create_res.msg_receipt.exit_code.value() != 0 {
         return Err(anyhow!(
-            "actor creation failed: {}",
-            create_res.msg_receipt.exit_code
+            "actor creation failed: {}\n{:#?}",
+            create_res.msg_receipt.exit_code,
+            create_res.failure_info,
         ));
     }
 
@@ -76,7 +78,7 @@ pub fn run<B: Blockstore>(
 
     if !invoke_res.msg_receipt.exit_code.is_success() {
         return Err(anyhow!(
-            "contract invocation failed: {} -- {:?}",
+            "contract invocation failed: {}\n{:#?}",
             invoke_res.msg_receipt.exit_code,
             invoke_res.failure_info,
         ));
